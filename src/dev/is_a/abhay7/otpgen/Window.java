@@ -5,14 +5,21 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 public class Window {
 	
@@ -24,7 +31,12 @@ public class Window {
 	private static JComboBox<String> algorithm;
 	private static JButton copyButton;
 	
+	private static JMenuBar menuBar;
+	private static JMenu colorBar;
+	private static JMenuItem[] looksAndFeelsItems;
+	
 	private static Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+	private static LookAndFeelInfo[] looksAndFeels = UIManager.getInstalledLookAndFeels();
 	
 	private Window() {}
 	
@@ -33,19 +45,27 @@ public class Window {
 			return frame;
 		}
 		
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(getFrame() , ex.getMessage() + " Defaulting to Metal.", "Window style error", JOptionPane.ERROR_MESSAGE);
+		}
+		
 		frame = new JFrame("OTP Generator");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(400, 150);
+		frame.setSize(500, 150);
 		frame.setLocationRelativeTo(null);
 		frame.setResizable(false);
 		
 		frame.setLayout(new FlowLayout());
 		frame.add(getSecretField());
-		frame.add(getLengthField());
 		frame.add(getAlgorithm());
 		frame.add(getGenerateButton());
+		frame.add(getLengthField());
 		frame.add(getResultField());
 		frame.add(getCopyButton());
+		
+		frame.setJMenuBar(getMenuBar());
 		
 		return frame;
 		
@@ -109,6 +129,54 @@ public class Window {
 			});
 		}
 		return copyButton;
+	}
+	
+	private static JMenuBar getMenuBar() {
+		if(menuBar == null) {
+			menuBar = new JMenuBar();
+			menuBar.add(getColorBar());
+		}
+		return menuBar;		
+	}
+	
+	private static JMenu getColorBar() {
+		if(colorBar == null) {
+			colorBar = new JMenu("Style");
+			for(JMenuItem item: getLooksAndFeelsItems()) {
+				colorBar.add(item);
+			}
+		}
+		return colorBar;
+	}
+	
+	private static JMenuItem[] getLooksAndFeelsItems() {
+		if(looksAndFeelsItems == null) {
+			looksAndFeelsItems = new JMenuItem[looksAndFeels.length];
+			for(int i = 0; i < looksAndFeelsItems.length; i++) {
+				looksAndFeelsItems[i] = new JMenuItem(looksAndFeels[i].getName());
+				looksAndFeelsItems[i].addActionListener(new LooksAndFeelsListener(looksAndFeels[i].getClassName()));
+			}
+		}
+		return looksAndFeelsItems;
+	}
+	
+	private static class LooksAndFeelsListener implements ActionListener {
+		
+		private String className;
+		
+		public LooksAndFeelsListener(String className) {
+			this.className = className;
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			try {
+				UIManager.setLookAndFeel(className);
+				SwingUtilities.updateComponentTreeUI(frame);
+			} catch(Exception ex) {
+				JOptionPane.showMessageDialog(getFrame() , ex.getMessage(), "Window style error", JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		
 	}
 	
 }
