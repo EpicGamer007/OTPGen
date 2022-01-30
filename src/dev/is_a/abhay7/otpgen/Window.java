@@ -1,6 +1,9 @@
 package dev.is_a.abhay7.otpgen;
 
 import java.awt.FlowLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 
 import javax.swing.JButton;
@@ -19,6 +22,9 @@ public class Window {
 	private static JTextField result;
 	private static JSpinner lengthField;
 	private static JComboBox<String> algorithm;
+	private static JButton copyButton;
+	
+	private static Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 	
 	private Window() {}
 	
@@ -39,65 +45,70 @@ public class Window {
 		frame.add(getAlgorithm());
 		frame.add(getGenerateButton());
 		frame.add(getResultField());
+		frame.add(getCopyButton());
 		
 		return frame;
 		
 	}
-	
+
 	private static JTextField getSecretField() {
-		if(secret != null) {
-			return secret;
+		if(secret == null) {
+			secret = new JTextField(33);
 		}
-		
-		secret = new JTextField(33);
 		return secret;
 	}
 	
 	private static JSpinner getLengthField() {
-		if(lengthField != null) {
-			return lengthField;
+		if(lengthField == null) {
+			var model = new SpinnerNumberModel(6, 6, 8, 1);
+			lengthField = new JSpinner(model);
 		}
-		var model = new SpinnerNumberModel(6, 6, 8, 1);
-		lengthField = new JSpinner(model);
 		return lengthField;
 	}
 	
 	private static JComboBox<String> getAlgorithm() {
-		if(algorithm != null) {
-			return algorithm;
+		if(algorithm == null) {
+			algorithm = new JComboBox<String>(new String[] {"SHA1", "SHA256", "SHA512"});
+			algorithm.setSelectedIndex(0);
 		}
-		algorithm = new JComboBox<String>(new String[] {"SHA1", "SHA256", "SHA512"});
-		algorithm.setSelectedIndex(0);
 		return algorithm;
 	}
 	
 	private static JButton getGenerateButton() {
-		if(generate != null) {
-			return generate;
+		if(generate == null) {
+			generate = new JButton("Generate");
+			generate.addActionListener((ActionEvent e) -> {
+				try {
+					var secret = getSecretField().getText();
+					var code = OTPGen.getCode(secret, (int) getLengthField().getValue(), (String) getAlgorithm().getSelectedItem());
+					getResultField().setText(code);
+				} catch(IllegalArgumentException iae) {
+					JOptionPane.showMessageDialog(getFrame() , iae.getMessage(), "Secret error", JOptionPane.ERROR_MESSAGE);
+				}
+			});
 		}
-		
-		generate = new JButton("Generate");
-		generate.addActionListener((ActionEvent e) -> {
-			var secret = getSecretField().getText();
-			if(secret.length() < 2) {
-				JOptionPane.showMessageDialog(getFrame() , "The secret is less than 2 characters long", "Secret error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			var code = OTPGen.getCode(secret, (int) getLengthField().getValue(), (String) getAlgorithm().getSelectedItem());
-			getResultField().setText(code);
-		});
-		
 		return generate;
 	}
 	
 	private static JTextField getResultField() {
-		if(result != null) {
-			return result;
+		if(result == null) {
+			result = new JTextField(20);
+			result.setEditable(false);
+			result.setText("");
 		}
-		
-		result = new JTextField(20);
-		result.setEditable(false);
 		return result;
 	}
-
+	
+	private static JButton getCopyButton() {
+		if(copyButton == null) {
+			copyButton = new JButton("Copy");
+			copyButton.addActionListener((ActionEvent e) -> {
+				if(!getResultField().getText().isEmpty()) {
+					clipboard.setContents(new StringSelection(getResultField().getText()), null);
+				}
+			});
+		}
+		return copyButton;
+	}
+	
 }
